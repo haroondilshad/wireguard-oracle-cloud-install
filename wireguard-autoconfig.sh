@@ -13,17 +13,12 @@ while [[ $hasWG == '' ]];do
     break;
 done
 
-hasRC=$(which resolvconf)
-while [[ $hasRC == '' ]];do
-    echo 'resolvconf not installed, attempting to install...'
-    apt-get install -y resolvconf
-    exit 1
-done
-
-systemctl stop resolvconf
-rm -f /etc/resolv.conf
-ln -s /run/resolvconf/resolv.conf /etc/resolv.conf
-systemctl restart resolvconf
+# Check for systemd-resolved
+if ! systemctl is-active --quiet systemd-resolved; then
+    echo "systemd-resolved not running, starting it..."
+    systemctl start systemd-resolved
+    systemctl enable systemd-resolved
+fi
 
 hasQR=$(which qrencode)
 while [[ $hasQR == '' ]];do
@@ -54,8 +49,8 @@ cat << EOF > wg0.conf
 PrivateKey = REF_SERVER_KEY
 Address = REF_SERVER_ADDRESS
 ListenPort = REF_SERVER_PORT
-PostUp = /etc/wireguard/helper/add-nat-routing.sh
-PostDown = /etc/wireguard/helper/remove-nat-routing.sh
+PostUp = iptables -t nat -I POSTROUTING -o enp0s6 -j MASQUERADE # https://docs.vultr.com/how-to-install-wireguard-vpn-on-ubuntu-24-04
+PostDown = iptables -t nat -D POSTROUTING -o enp0s6 -j MASQUERADE
 EOF
 mkdir settings
 echo "2" > settings/peer.next
