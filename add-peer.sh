@@ -55,7 +55,8 @@ if [ "$tunnel_mode" = "1" ]; then
 elif [ "$tunnel_mode" = "2" ]; then
     # Get the internal network CIDR from settings
     internal_network_v4="$(cat ../settings/ipv4)0/24"
-    internal_network_v6="$(cat ../settings/ipv6)::/64"
+    # Fix IPv6 address format by removing extra colon
+    internal_network_v6="$(cat ../settings/ipv6)/64"
     allowed_ips_conf="$internal_network_v4, $internal_network_v6"
     echo "Configuring split tunnel mode for internal networks: $internal_network_v4, $internal_network_v6"
 else
@@ -80,7 +81,7 @@ EOF
 external_ip=$(curl ipinfo.io/ip)
 server_endpoint="$external_ip:$(cat ../settings/port)"
 ipv4_peer_addr="$(cat ../settings/ipv4)${peerNum}/24"
-ipv6_peer_addr="$(cat ../settings/ipv6):${peerNum}/64"
+ipv6_peer_addr="$(cat ../settings/ipv6)${peerNum}/64"
 
 echo 'Setting peer configuration...'
 sed -i "s;REF_PEER_KEY;$(cat privatekey);g" peer.conf
@@ -97,7 +98,7 @@ cat << EOF >> ../wg0.conf
 PublicKey = REF_PEER_PUBLIC_KEY
 AllowedIPs = REF_PEER_IPS
 EOF
-allowed_ips="$(cat ../settings/ipv4)${peerNum}/32, $(cat ../settings/ipv6):${peerNum}/128"
+allowed_ips="$(cat ../settings/ipv4)${peerNum}/32, $(cat ../settings/ipv6)${peerNum}/128"
 sed -i "s;REF_PEER_PUBLIC_KEY;$(cat publickey);g" ../wg0.conf
 sed -i "s;REF_PEER_IPS;$allowed_ips;g" ../wg0.conf
 

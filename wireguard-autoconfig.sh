@@ -63,8 +63,10 @@ echo $ipv4_server_addr > settings/ipv4
 sed -i 's;1/24;;g' settings/ipv4
 
 echo 'Determining IPv6 address from date and machine ID...'
-ipv6_server_addr="fd$(printf $(date +%s%N)$(cat /var/lib/dbus/machine-id) | sha1sum | tr -d ' -' | cut -c 31-)"
-ipv6_server_addr="$(echo $ipv6_server_addr | sed -r 's/.{4}/&:/g')"
+# Generate IPv6 ULA prefix (fd + 40 random bits)
+ipv6_prefix="fd$(printf $(date +%s%N)$(cat /var/lib/dbus/machine-id) | sha1sum | tr -d ' -' | cut -c 1-10)"
+# Format with colons every 4 characters, but ensure no triple colons
+ipv6_server_addr="$(echo $ipv6_prefix | sed 's/.\{4\}/&:/g' | sed 's/:$//')"
 echo $ipv6_server_addr > settings/ipv6
 ipv6_server_addr="$ipv6_server_addr:1/64"
 
